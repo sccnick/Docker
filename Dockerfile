@@ -6,20 +6,23 @@ WORKDIR /usr/src/app
 # Install app dependencies
 COPY package*.json ./
 RUN apk update \
-    && apk add git \
     && npm install
 
 COPY . .
-RUN npm run build
+RUN npm run build --prod
 
 FROM keymetrics/pm2:latest-alpine
 
 WORKDIR /usr/src/app
 
-COPY --from=builder /usr/src/app/dist /app/dist
+COPY --from=builder /usr/src/app/dist/ ./dist/
 
-COPY pm2*.json ./
+COPY ssl/ ./ssl/
+COPY frontend.js pm2-production.json ./
+RUN npm install express express-winston winston helmet
 
-EXPOSE ${CONTAINER_PORT}
+#  {CONTAINER_PORT}
+EXPOSE 80
 
-CMD [ "pm2-runtime", "start", "${PM2_FILE}" ]
+#  {PM2_FILE}
+CMD [ "pm2-runtime", "start", "pm2-production.json" ]
